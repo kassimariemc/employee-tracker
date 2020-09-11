@@ -85,7 +85,11 @@ function start() {
 }
 
 function queryAllEmployees() {
-
+  connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name, role.salary, employee.manager_id FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id", function (err, res) {
+    if (err) throw (err);
+    console.table(res);
+    start();
+  });
 }
 
 function queryAllEmployeesByDept() {
