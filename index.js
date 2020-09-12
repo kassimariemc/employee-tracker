@@ -178,7 +178,10 @@ function updateEmployeeMgr() {
 }
 
 function queryAllRoles() {
-
+  connection.query("SELECT role.id, role.title, role.salary, department.name AS department FROM department INNER JOIN role ON department.id = role.department_id", function(err, res) {
+    console.table(res);
+    start();
+  });
 }
 
 function addRole() {
@@ -190,7 +193,10 @@ function removeRole() {
 }
 
 function queryAllDepartments() {
-
+  connection.query("SELECT id, name AS department FROM department", function(err, res) {
+    console.table(res);
+    start();
+  });
 }
 
 function addDepartment() {
