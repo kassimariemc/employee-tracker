@@ -85,19 +85,53 @@ function start() {
 }
 
 function queryAllEmployees() {
-  connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name, role.salary, employee.manager_id FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id", function (err, res) {
+  connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id", function (err, res) {
     if (err) throw (err);
+    for (let i = 0; i < res.length; i++) {
+      let manager_id = res[i].manager;
+      if (manager_id !== null) {
+        res[i].manager = res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name;
+      }
+    }
     console.table(res);
     start();
   });
 }
 
 function queryAllEmployeesByDept() {
-
+  connection.query("SELECT * FROM department", function (err, res) {
+    if (err) throw (err);
+    inquirer.prompt(
+      {
+        name: "departmentSelection",
+        type: "list",
+        message: "Which department would you like to view?",
+        choices: function () {
+          let choiceArray = [];
+          for (let i = 0; i < res.length; i++) {
+            choiceArray.push(res[i].name);
+          }
+          return choiceArray;
+        }
+      }
+    ).then(function (answer) {
+      connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id WHERE department.name = ?", [answer.departmentSelection], function(err, res) {
+        if (err) throw (err);
+        for (let i = 0; i < res.length; i++) {
+          let manager_id = res[i].manager;
+          if (manager_id !== null) {
+            res[i].manager = res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name;
+          }
+        }
+        console.table(res);
+        start();
+      })
+      });
+  });
 }
 
 function queryAllEmployeesByMgr() {
-
+  
 }
 
 function addEmployee() {
