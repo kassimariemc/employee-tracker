@@ -1,6 +1,7 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
+const convertMgrIdtoName = require("./helperFuncs");
 
 // connection info for sql database
 const connection = mysql.createConnection({
@@ -84,15 +85,12 @@ function start() {
   });
 }
 
+const queryAll = "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id";
+
 function queryAllEmployees() {
-  connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id", function (err, res) {
+  connection.query(queryAll, function (err, res) {
     if (err) throw (err);
-    for (let i = 0; i < res.length; i++) {
-      let manager_id = res[i].manager;
-      if (manager_id !== null) {
-        res[i].manager = res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name;
-      }
-    }
+    convertMgrIdtoName(res);
     console.table(res);
     start();
   });
@@ -115,23 +113,52 @@ function queryAllEmployeesByDept() {
         }
       }
     ).then(function (answer) {
-      connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id WHERE department.name = ?", [answer.departmentSelection], function(err, res) {
+      connection.query(queryAll + " WHERE department.name = ?", [answer.departmentSelection], function (err, res) {
         if (err) throw (err);
-        for (let i = 0; i < res.length; i++) {
-          let manager_id = res[i].manager;
-          if (manager_id !== null) {
-            res[i].manager = res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name;
-          }
-        }
+        convertMgrIdtoName(res);
         console.table(res);
         start();
       })
-      });
+    });
   });
 }
 
 function queryAllEmployeesByMgr() {
-  
+  connection.query("SELECT * FROM employee", function (err, res) {
+    if (err) throw (err);
+    inquirer.prompt([
+      {
+        name: "mgrSelection",
+        type: "list",
+        message: "Which manager's employees would you like to view?",
+        choices: function () {
+          let choiceArray = [];
+          for (let i = 0; i < res.length; i++) {
+            let manager_id = res[i].manager_id;
+            if (manager_id !== null) {
+              choiceArray.push(res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name);
+            }
+          }
+          return choiceArray;
+        }
+      }
+    ]).then(function (answer) {
+      connection.query(queryAll, function (err, res) {
+        if (err) throw (err);
+        convertMgrIdtoName(res);
+
+        let employeesByMgr = [];
+
+        for(let i = 0; i < res.length; i++) {
+          if(res[i].manager === answer.mgrSelection) {
+            employeesByMgr.push(res[i]);
+          }
+        }
+        console.table(employeesByMgr);
+        start();
+      })
+    })
+  })
 }
 
 function addEmployee() {
