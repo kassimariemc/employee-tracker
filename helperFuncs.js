@@ -8,4 +8,4 @@ const convertMgrIdtoName = (res) => {
   return res;
 }
 
-module.exports = convertMgrIdtoName;
+module.exports = {convertMgrIdtoName};

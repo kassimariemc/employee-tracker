@@ -1,6 +1,7 @@
 ## pseudo-code
 call start function on connection
 
+<!-- DONE -->
 ### start function
 * use inquirer to ask what client would like to do:
   * View all employees
@@ -19,6 +20,7 @@ call start function on connection
   * View total utilized budget (BONUS)
 .then use switch statement to direct to next corresponding function
 
+<!-- DONE -->
 ### queryAllEmployees function
 * to display employee id, first & last name, title, department, salary, manager
 * connection.query
@@ -29,6 +31,7 @@ INNER JOIN employee ON role.id = emplyoee.role_id
 * console.table(results)
 * need to link manager_id to employee first_name & last_name
 
+<!-- DONE -->
 ### queryEmployeesByDept function
 * use inquirer to ask which department they would like to view
 * display departments as choices
@@ -49,9 +52,11 @@ INNER JOIN role ON department.id = role.department_id
 INNER JOIN employee ON role.id = emplyoee.role_id
 * console.table(results)
 
+<!-- DONE -->
 ### queryEmployeesByManager function
 * similar to above
 
+<!-- NEED TO FIX -->
 ### addEmployee function
 * display roles and managers as choices
 * connection.query
@@ -71,6 +76,7 @@ INNER JOIN employee ON role.id = emplyoee.role_id
   manager_id: 
 }
 
+<!-- DONE -->
 ### removeEmployee function
 * display employees as choices
 * connection.query
@@ -87,6 +93,7 @@ INNER JOIN employee ON role.id = emplyoee.role_id
   last_name: 
 }
 
+<!-- TO DO -->
 ### updateEmployeeRole function
 * display employees as choices (same as above)
 * then display roles as choices 
@@ -98,14 +105,17 @@ INNER JOIN employee ON role.id = emplyoee.role_id
   id: first SELECT * FROM employee to get id
 }
 
+<!-- TO DO -->
 ### updateEmployeeManager function
 * similar to above
 
+<!-- DONE -->
 ### queryAllRoles and queryAllDepartments function
 * connection.query
 * SELECT * FROM roles/department
 * console.table(results)
 
+<!-- DONE -->
 ### addRole and addDepartment function
 * inquirer to get new role/department, if role then also need salary, and display departments as choices
 * connection.query
@@ -116,6 +126,7 @@ INNER JOIN employee ON role.id = emplyoee.role_id
   department_id: first SELECT * FROM department to get id
 }
 
+<!-- DONE -->
 ### removeRole and removeDepartment functions
 * inquirer
 * display as choices
