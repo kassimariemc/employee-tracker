@@ -63,10 +63,10 @@ async function start() {
   });
 }
 
-const queryAll = "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id ORDER BY employee.id";
+const queryAll = "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id";
 
 function queryAllEmployees() {
-  connection.query(queryAll, function (err, res) {
+  connection.query(queryAll + " ORDER BY employee.id", function (err, res) {
     if (err) throw (err);
     helperFuncs.convertMgrIdtoName(res);
     console.table(res);
@@ -115,15 +115,15 @@ async function queryAllEmployeesByMgr() {
   ]).then(function (answer) {
     connection.query(queryAll, function (err, res) {
       if (err) throw (err);
-
+     
       let employeesByMgr = [];
 
       for (let i = 0; i < res.length; i++) {
         if (res[i].manager === answer.mgrSelection) {
-          helperFuncs.convertMgrIdtoName(res);
           employeesByMgr.push(res[i]);
         }
       }
+      helperFuncs.convertMgrIdtoName(res);
       console.table(employeesByMgr);
       start();
     })
