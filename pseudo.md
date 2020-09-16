@@ -56,7 +56,7 @@ INNER JOIN employee ON role.id = emplyoee.role_id
 ### queryEmployeesByManager function
 * similar to above
 
-<!-- NEED TO FIX -->
+<!-- DONE -->
 ### addEmployee function
 * display roles and managers as choices
 * connection.query

@@ -1,33 +1,11 @@
-const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
-const helperFuncs = require("./helperFuncs");
-
-// connection info for sql database
-const connection = mysql.createConnection({
-  host: "localhost",
-
-  // Your port; if not 3306
-  port: 3306,
-
-  // Your username
-  user: "root",
-
-  // Your password
-  password: "12345678",
-  database: "employeeTracker_DB"
-});
-
-// connect to the mysql server and sql database
-connection.connect(function (err) {
-  if (err) throw err;
-  console.log("connected as id " + connection.threadId + "\n");
-  start();
-});
+const helperFuncs = require("./db/helperFuncs");
+const connection = require("./db/connection");
 
 // function which prompts user to select an action
-function start() {
-  inquirer.prompt([
+async function start() {
+  await inquirer.prompt([
     {
       name: "action",
       type: "list",
@@ -97,180 +75,137 @@ function queryAllEmployees() {
   });
 }
 
-function queryAllEmployeesByDept() {
-  connection.query("SELECT * FROM department", function (err, res) {
-    if (err) throw (err);
-    inquirer.prompt(
-      {
-        name: "departmentSelection",
-        type: "list",
-        message: "Which department would you like to view?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            choiceArray.push(res[i].name);
-          }
-          return choiceArray;
-        }
-      }
-    ).then(function (answer) {
-      connection.query(queryAll + " WHERE department.name = ?", [answer.departmentSelection], function (err, res) {
-        if (err) throw (err);
-        helperFuncs.convertMgrIdtoName(res);
-        console.table(res);
-        start();
-      })
-    });
+async function queryAllEmployeesByDept() {
+  const depts = await helperFuncs.deptTable();
+  const deptChoices = depts.map(({ id, name }) => ({
+    name: name,
+    value: id
+  }));
+  
+  inquirer.prompt(
+    {
+      name: "departmentSelection",
+      type: "list",
+      message: "Which department would you like to view?",
+      choices: deptChoices
+    }
+  ).then(function (answer) {
+    connection.query(queryAll + " WHERE department.id = ?", [answer.departmentSelection], function (err, res) {
+      if (err) throw (err);
+      helperFuncs.convertMgrIdtoName(res);
+      console.table(res);
+      start();
+    })
   });
 }
 
-function queryAllEmployeesByMgr() {
-  connection.query("SELECT * FROM employee", function (err, res) {
-    if (err) throw (err);
-    inquirer.prompt([
-      {
-        name: "mgrSelection",
-        type: "list",
-        message: "Which manager's employees would you like to view?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            let manager_id = res[i].manager_id;
-            if (manager_id !== null) {
-              choiceArray.push(res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name);
-            }
-          }
-          return choiceArray;
+async function queryAllEmployeesByMgr() {
+  const employees = await helperFuncs.empTable();
+  const managerChoices = employees.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
+  inquirer.prompt([
+    {
+      name: "mgrSelection",
+      type: "list",
+      message: "Which manager's employees would you like to view?",
+      choices: managerChoices
+    }
+  ]).then(function (answer) {
+    connection.query(queryAll, function (err, res) {
+      if (err) throw (err);
+
+      let employeesByMgr = [];
+
+      for (let i = 0; i < res.length; i++) {
+        if (res[i].manager === answer.mgrSelection) {
+          helperFuncs.convertMgrIdtoName(res);
+          employeesByMgr.push(res[i]);
         }
       }
-    ]).then(function (answer) {
-      connection.query(queryAll, function (err, res) {
-        if (err) throw (err);
-        helperFuncs.convertMgrIdtoName(res);
-
-        let employeesByMgr = [];
-
-        for (let i = 0; i < res.length; i++) {
-          if (res[i].manager === answer.mgrSelection) {
-            employeesByMgr.push(res[i]);
-          }
-        }
-        console.table(employeesByMgr);
-        start();
-      })
+      console.table(employeesByMgr);
+      start();
     })
   })
 }
 
-function addEmployee() {
-  connection.query("SELECT role.title FROM role", function (err, res) {
-    if (err) throw (err);
-    inquirer.prompt([
-      {
-        name: "firstName",
-        type: "input",
-        message: "What is the employee's first name?"
-      },
-      {
-        name: "lastName",
-        type: "input",
-        message: "What is the employee's last name?"
-      },
-      {
-        name: "roleSelection",
-        type: "list",
-        message: "Which role will the employee have?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            choiceArray.push(res[i].title);
-          }
-          return choiceArray;
-        }
-      },
-      {
-        name: "mgrSelection",
-        type: "list",
-        message: "Who will be the employee's manager?",
-        choices: function () {
-          // NEED TO FIX THIS FUNC, CURRENTLY RETURNS EMPTY ARRAY
-          connection.query("SELECT * FROM employee", function (err, res) {
-            if (err) throw (err);
+async function addEmployee() {
+  const roles = await helperFuncs.roleTable();
+  const roleChoices = roles.map(({ id, title }) => ({
+    name: title,
+    value: id
+  }));
 
-            for (let i = 0; i < res.length; i++) {
-              let manager_id = res[i].manager_id;
-              if (manager_id !== null) {
-                choiceArray.push(res[manager_id - 1].first_name + " " + res[manager_id - 1].last_name);
-              }
-            }
-          });
-          return choiceArray;
-        }
-      }
-    ])
-    .then(function (answers) {
-      connection.query("SELECT * FROM role", function (err, res) {
-        if (err) throw (err);
-        let role;
-        for (let i = 0; i < res.length; i++) {
-          if (answers.roleSelection === res[i].title) {
-            role = res[i].id;
-          }
-        }
-        connection.query("SELECT * FROM employee", function (err, res) {
-          if (err) throw (err);
-          let mgr;
-          let splitName = answers.mgrSelection.split(" ");
-          for (let i = 0; i < res.length; i++) {
-            if (splitName[0] === res[i].first_name && splitName[1] === res[i].last_name) {
-              mgr = res[i].id;
-            }
-          }
-        })
-        connection.query("INSERT INTO employee SET ?"),
-            {
-              first_name: answers.firstName,
-              last_name: answers.lastName,
-              role_id: role,
-              manager_id: mgr
-            },
-            function (err, res) {
-              if (err) throw err;
-              console.log("New employee added!");
-              start();
-            }
-      });
-    });
+  const employees = await helperFuncs.empTable();
+  const managerChoices = employees.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
+  managerChoices.unshift({ name: "None", value: null });
 
+  inquirer.prompt([
+  {
+    name: "firstName",
+    type: "input",
+    message: "What is the employee's first name?"
+  },
+  {
+    name: "lastName",
+    type: "input",
+    message: "What is the employee's last name?"
+  },
+  {
+    name: "roleSelection",
+    type: "list",
+    message: "Which role will the employee have?",
+    choices: roleChoices
+  },
+  {
+    name: "mgrSelection",
+    type: "list",
+    message: "Who will be the employee's manager?",
+    choices: managerChoices
+  }
+])
+  .then(function (answers) {
+    connection.query("INSERT INTO employee SET ?",
+    {
+      first_name: answers.firstName,
+      last_name: answers.lastName,
+      role_id: answers.roleSelection,
+      manager_id: answers.mgrSelection
+    },
+      function (err, res) {
+        if (err) throw err;
+        console.log("New employee added!");
+        start();
+      })
   });
 }
 
-function removeEmployee() {
-  connection.query("SELECT * FROM employee", function(err, res) {
-    if (err) throw (err);
-    inquirer.prompt([
-      {
-        name: "empSelection",
-        type: "list",
-        message: "Which employee would you like to remove?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            choiceArray.push(res[i].first_name + " " + res[i].last_name);
-          }
-          return choiceArray;
-        }
-      }
-    ]).then(function(answers) {
-      let splitEmp = answers.empSelection.split(" ");
-      connection.query("DELETE FROM employee WHERE first_name=? AND last_name=?", [splitEmp[0], splitEmp[1]] 
-      , function(err, res) {
+async function removeEmployee() {
+  const emps = await helperFuncs.empTable();
+  const empChoices = emps.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
+
+  inquirer.prompt([
+    {
+      name: "empSelection",
+      type: "list",
+      message: "Which employee would you like to remove?",
+      choices: empChoices
+    }
+  ]).then(function (answers) {
+    connection.query("DELETE FROM employee WHERE id = ?", [answers.empSelection], function (err, res) {
         if (err) throw (err);
         console.log("Employee removed!");
         start();
       });
-    });
   });
+
 }
 
 function updateEmployeeRole() {
@@ -288,78 +223,66 @@ function queryAllRoles() {
   });
 }
 
-function addRole() {
-  connection.query("SELECT * FROM department", function(err, res) {
-    if (err) throw (err);
-    inquirer.prompt([
-      {
-        name: "roleTitle",
-        type: "input",
-        message: "What is the name of the new role?"
-      },
-      {
-        name: "roleSalary",
-        type: "input",
-        message: "What will the salary be?"
-      },
-      {
-        name: "deptSelection",
-        type: "list",
-        message: "Which department will this role be a part of?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            choiceArray.push(res[i].name);
-          }
-          return choiceArray;
-        }
-      }
-    ]).then(function(answers) {
-      let dept;
-      for(let i = 0; i < res.length; i++) {
-        if(answers.deptSelection === res[i].name) {
-          dept = res[i].id;
-        }
-      }
-      connection.query("INSERT INTO role SET ?", 
+async function addRole() {
+  const depts = await helperFuncs.deptTable();
+  const deptChoices = depts.map(({ id, name }) => ({
+    name: name,
+    value: id
+  }));
+
+  inquirer.prompt([
+    {
+      name: "roleTitle",
+      type: "input",
+      message: "What is the name of the new role?"
+    },
+    {
+      name: "roleSalary",
+      type: "input",
+      message: "What will the salary be?"
+    },
+    {
+      name: "deptSelection",
+      type: "list",
+      message: "Which department will this role be a part of?",
+      choices: deptChoices
+    }
+  ]).then(function (answers) {
+    connection.query("INSERT INTO role SET ?",
       {
         title: answers.roleTitle,
         salary: answers.roleSalary,
-        department_id: dept
+        department_id: answers.deptSelection
       }
-      , function(err, res) {
+      , function (err, res) {
         if (err) throw (err);
         console.log("Role added!");
         start();
       });
-    });
   });
 }
 
-function removeRole() {
-  connection.query("SELECT * FROM role", function(err, res) {
-    if (err) throw (err);
-    inquirer.prompt([
-      {
-        name: "roleSelection",
-        type: "list",
-        message: "Which role would you like to remove?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            choiceArray.push(res[i].title);
-          }
-          return choiceArray;
-        }
-      }
-    ]).then(function(answers) {
-      connection.query("DELETE FROM role WHERE title=?", [answers.roleSelection] 
-      , function(err, res) {
+async function removeRole() {
+  const roles = await helperFuncs.roleTable();
+  const roleChoices = roles.map(({ id, title }) => ({
+    name: title,
+    value: id
+  }));
+
+  inquirer.prompt([
+    {
+      name: "roleSelection",
+      type: "list",
+      message: "Which role would you like to remove?",
+      choices: roleChoices
+    }
+  ]).then(function (answers) {
+    connection.query("DELETE FROM role WHERE id = ?", [answers.roleSelection]
+      , function (err, res) {
         if (err) throw (err);
         console.log("Role removed!");
         start();
       });
-    });
   });
 }
 
@@ -377,42 +300,42 @@ function addDepartment() {
       type: "input",
       message: "What is the name of the new department?"
     }
-  ]).then(function(answers) {
-    connection.query("INSERT INTO department SET ?", 
-    {
-      name: answers.deptName
-    },
-    function(err, res) {
-      if (err) throw (err);
-      console.log("Department added!");
-      start();
-    })
+  ]).then(function (answers) {
+    connection.query("INSERT INTO department SET ?",
+      {
+        name: answers.deptName
+      },
+      function (err, res) {
+        if (err) throw (err);
+        console.log("Department added!");
+        start();
+      })
   })
 }
 
-function removeDepartment() {
-  connection.query("SELECT * FROM department", function(err, res) {
-    if (err) throw (err);
-    inquirer.prompt([
-      {
-        name: "deptSelection",
-        type: "list",
-        message: "Which department would you like to remove?",
-        choices: function () {
-          let choiceArray = [];
-          for (let i = 0; i < res.length; i++) {
-            choiceArray.push(res[i].name);
-          }
-          return choiceArray;
-        }
-      }
-    ]).then(function(answers) {
-      connection.query("DELETE FROM department WHERE name=?", [answers.deptSelection] 
-      , function(err, res) {
+async function removeDepartment() {
+  const depts = await helperFuncs.deptTable();
+  const deptChoices = depts.map(({ id, name }) => ({
+    name: name,
+    value: id
+  }));
+  
+  inquirer.prompt([
+    {
+      name: "deptSelection",
+      type: "list",
+      message: "Which department would you like to remove?",
+      choices: deptChoices
+    }
+  ]).then(function (answers) {
+    connection.query("DELETE FROM department WHERE id = ?", [answers.deptSelection]
+      , function (err, res) {
         if (err) throw (err);
         console.log("Department removed!");
         start();
       });
-    });
   });
 }
+
+// Begin app
+start();
