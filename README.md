@@ -9,12 +9,16 @@
   Technologies used
   * node.js
   * package.json
-  * constructors
+  * constructors and classes
   * inquirer npm package
-  * classes
+  * MySQL
+  * Async/Await
 
   ### Demo
-  <iframe src="https://drive.google.com/file/d/1SrXI82YM5BYEojznyhWBg6uHaLHhCJA-/preview" width="640" height="480"></iframe>
+
+  <figure class="video_container">
+    <iframe src="https://drive.google.com/file/d/1SrXI82YM5BYEojznyhWBg6uHaLHhCJA-/preview" frameborder="0" allowfullscreen="true"> </iframe>
+  </figure>
 
   ## Table of Contents
 
