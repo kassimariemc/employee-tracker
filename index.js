@@ -63,16 +63,24 @@ async function start() {
   });
 }
 
-const queryAll = "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id AS manager FROM department INNER JOIN role ON department.id = role.department_id INNER JOIN employee ON role.id = employee.role_id";
+async function convertMgrIdtoName(res) {
+  const employees = await helperFuncs.empTable();
+  res.forEach(element => {
+    for(let i = 0; i < employees.length; i++) {
+      if(element.manager === employees[i].id) {
+        element.manager = employees[i].first_name + " " + employees[i].last_name;
+      }
+    }
+  })
+  return res;
+}
 
-function queryAllEmployees() {
-  connection.query(queryAll + " ORDER BY employee.id", function (err, res) {
-    if (err) throw (err);
-    helperFuncs.convertMgrIdtoName(res);
-    console.table(res);
-    // return to start function for next action
-    start();
-  });
+async function queryAllEmployees() {
+  const table = await helperFuncs.fullTable();
+  const newTable = await convertMgrIdtoName(table);
+  console.table(newTable);
+  // return to start function for next action
+  start();
 }
 
 async function queryAllEmployeesByDept() {
@@ -82,21 +90,19 @@ async function queryAllEmployeesByDept() {
     value: id
   }));
 
-  inquirer.prompt(
+  const answer = await inquirer.prompt(
     {
       name: "departmentSelection",
       type: "list",
       message: "Which department would you like to view?",
       choices: deptChoices
     }
-  ).then(function (answer) {
-    connection.query(queryAll + " WHERE department.id = ?", [answer.departmentSelection], function (err, res) {
-      if (err) throw (err);
-      helperFuncs.convertMgrIdtoName(res);
-      console.table(res);
-      start();
-    })
-  });
+  )
+  const res = await helperFuncs.empByDept(answer.departmentSelection);
+  const newRes = await convertMgrIdtoName(res);
+  console.table(newRes);
+  start();
+  
 }
 
 async function queryAllEmployeesByMgr() {
@@ -105,29 +111,27 @@ async function queryAllEmployeesByMgr() {
     name: `${first_name} ${last_name}`,
     value: id
   }));
-  inquirer.prompt([
+
+  const answer = await inquirer.prompt([
     {
       name: "mgrSelection",
       type: "list",
       message: "Which manager's employees would you like to view?",
       choices: managerChoices
     }
-  ]).then(function (answer) {
-    connection.query(queryAll, function (err, res) {
-      if (err) throw (err);
+  ])
+  const res = await helperFuncs.fullTable();
      
-      let employeesByMgr = [];
+  let employeesByMgr = [];
 
-      for (let i = 0; i < res.length; i++) {
-        if (res[i].manager === answer.mgrSelection) {
-          employeesByMgr.push(res[i]);
-        }
-      }
-      helperFuncs.convertMgrIdtoName(res);
-      console.table(employeesByMgr);
-      start();
-    })
-  })
+  for (let i = 0; i < res.length; i++) {
+    if (res[i].manager === answer.mgrSelection) {
+      employeesByMgr.push(res[i]);
+    }
+  }
+  const newTable = await convertMgrIdtoName(employeesByMgr);
+  console.table(newTable);
+  start();
 }
 
 async function addEmployee() {
