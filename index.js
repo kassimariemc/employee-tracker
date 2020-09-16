@@ -81,7 +81,7 @@ async function queryAllEmployeesByDept() {
     name: name,
     value: id
   }));
-  
+
   inquirer.prompt(
     {
       name: "departmentSelection",
@@ -145,43 +145,43 @@ async function addEmployee() {
   managerChoices.unshift({ name: "None", value: null });
 
   inquirer.prompt([
-  {
-    name: "firstName",
-    type: "input",
-    message: "What is the employee's first name?"
-  },
-  {
-    name: "lastName",
-    type: "input",
-    message: "What is the employee's last name?"
-  },
-  {
-    name: "roleSelection",
-    type: "list",
-    message: "Which role will the employee have?",
-    choices: roleChoices
-  },
-  {
-    name: "mgrSelection",
-    type: "list",
-    message: "Who will be the employee's manager?",
-    choices: managerChoices
-  }
-])
-  .then(function (answers) {
-    connection.query("INSERT INTO employee SET ?",
     {
-      first_name: answers.firstName,
-      last_name: answers.lastName,
-      role_id: answers.roleSelection,
-      manager_id: answers.mgrSelection
+      name: "firstName",
+      type: "input",
+      message: "What is the employee's first name?"
     },
-      function (err, res) {
-        if (err) throw err;
-        console.log("New employee added!");
-        start();
-      })
-  });
+    {
+      name: "lastName",
+      type: "input",
+      message: "What is the employee's last name?"
+    },
+    {
+      name: "roleSelection",
+      type: "list",
+      message: "Which role will the employee have?",
+      choices: roleChoices
+    },
+    {
+      name: "mgrSelection",
+      type: "list",
+      message: "Who will be the employee's manager?",
+      choices: managerChoices
+    }
+  ])
+    .then(function (answers) {
+      connection.query("INSERT INTO employee SET ?",
+        {
+          first_name: answers.firstName,
+          last_name: answers.lastName,
+          role_id: answers.roleSelection,
+          manager_id: answers.mgrSelection
+        },
+        function (err, res) {
+          if (err) throw err;
+          console.log("New employee added!");
+          start();
+        })
+    });
 }
 
 async function removeEmployee() {
@@ -200,20 +200,100 @@ async function removeEmployee() {
     }
   ]).then(function (answers) {
     connection.query("DELETE FROM employee WHERE id = ?", [answers.empSelection], function (err, res) {
-        if (err) throw (err);
-        console.log("Employee removed!");
-        start();
-      });
+      if (err) throw (err);
+      console.log("Employee removed!");
+      start();
+    });
   });
-
 }
 
-function updateEmployeeRole() {
+async function updateEmployeeRole() {
+  const employees = await helperFuncs.empTable();
+  const empChoices = employees.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
 
+  const roles = await helperFuncs.roleTable();
+  const roleChoices = roles.map(({ id, title }) => ({
+    name: title,
+    value: id
+  }));
+
+  inquirer.prompt([
+    {
+      name: "empSelection",
+      type: "list",
+      message: "Which employee would you like to edit?",
+      choices: empChoices
+    },
+    {
+      name: "roleSelection",
+      type: "list",
+      message: "What is the new role?",
+      choices: roleChoices
+    }
+  ]).then(function (answers) {
+    connection.query("UPDATE employee SET ? WHERE ?",
+      [
+        {
+          role_id: answers.roleSelection
+        },
+        {
+          id: answers.empSelection
+        }
+      ],
+      function (err, res) {
+        if (err) throw (err);
+        console.log("Employee role updated!");
+        start();
+      }
+    );
+  });
 }
 
-function updateEmployeeMgr() {
+async function updateEmployeeMgr() {
+  const employees = await helperFuncs.empTable();
+  const empChoices = employees.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
+  const mgrChoices = employees.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
+  mgrChoices.unshift({ name: "None", value: null });
 
+  inquirer.prompt([
+    {
+      name: "empSelection",
+      type: "list",
+      message: "Which employee would you like to edit?",
+      choices: empChoices
+    },
+    {
+      name: "mgrSelection",
+      type: "list",
+      message: "Who is the new manager assigned?",
+      choices: mgrChoices
+    }
+  ]).then(function (answers) {
+    connection.query("UPDATE employee SET ? WHERE ?",
+      [
+        {
+          manager_id: answers.mgrSelection
+        },
+        {
+          id: answers.empSelection
+        }
+      ],
+      function (err, res) {
+        if (err) throw (err);
+        console.log("Employee manager updated!");
+        start();
+      }
+    );
+  });
 }
 
 function queryAllRoles() {
@@ -319,7 +399,7 @@ async function removeDepartment() {
     name: name,
     value: id
   }));
-  
+
   inquirer.prompt([
     {
       name: "deptSelection",

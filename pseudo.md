@@ -93,7 +93,7 @@ INNER JOIN employee ON role.id = emplyoee.role_id
   last_name: 
 }
 
-<!-- TO DO -->
+<!-- DONE -->
 ### updateEmployeeRole function
 * display employees as choices (same as above)
 * then display roles as choices 
@@ -134,26 +134,4 @@ INNER JOIN employee ON role.id = emplyoee.role_id
 * DELETE FROM role/department WHERE ?
 {
   id: first SELECT * FROM to get id
-}
-
-## Classes to set up
-### Department class
-* (department_id, department_name)
-* getDepartmentId, getDepartmentName
-### Role class
-* (role_id, title, salary, department_id)
-* getRoleId, getRoleTitle, getSalary
-### Employee class
-* (first_name, last_name, role_id, manager_id)
-* getEmployeeId, getEmployeeName
-
-class Department (department_id, department_name, connection) {
-  this.department_id = department_id;
-  this.department_name = department_name;
-  this.connection = connection;
-
-  getDepartmentId() {
-    <!-- return this.department_id; -->
-    return this.connection.query()
-  }
 }
