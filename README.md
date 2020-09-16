@@ -16,9 +16,7 @@
 
   ### Demo
 
-  <figure class="video_container">
-    <iframe src="https://drive.google.com/file/d/1SrXI82YM5BYEojznyhWBg6uHaLHhCJA-/preview" frameborder="0" allowfullscreen="true"> </iframe>
-  </figure>
+  ![Terminal Recording](/images/demo.gif)
 
   ## Table of Contents
 
